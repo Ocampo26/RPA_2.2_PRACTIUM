@@ -1,0 +1,204 @@
+<mxfile host="app.diagrams.net" agent="ChatGPT">
+  <diagram id="arquitectura-final-n8n" name="Arquitectura final n8n">
+    <mxGraphModel dx="2605" dy="1389" grid="1" gridSize="1" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2600" pageHeight="1200" background="light-dark(#abd5de, #f3deff)" math="0" shadow="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="v2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#a20025;strokeColor=#6F0000;fontColor=#ffffff;fontStyle=1;fontSize=26;align=center;verticalAlign=middle;shadow=0;" value="Arquitectura final del Pipeline RPA Macroentorno Ecuador&lt;br&gt;&lt;font style=&quot;font-size:16px&quot;&gt;Solución propuesta usando únicamente n8n + carpetas trazables + Oracle DB + notificación por correo&lt;/font&gt;" vertex="1">
+          <mxGeometry height="70" width="2460" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="v3" parent="1" style="swimlane;whiteSpace=wrap;html=1;fillColor=#a20025;strokeColor=#6F0000;fontColor=#ffffff;fontStyle=1;fontSize=16;startSize=34;rounded=1;" value="1. Fuentes públicas y catálogo de datos" vertex="1">
+          <mxGeometry height="910" width="470" x="40" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="v4" parent="1" style="swimlane;whiteSpace=wrap;html=1;fillColor=#a20025;strokeColor=#6F0000;fontColor=#ffffff;fontStyle=1;fontSize=16;startSize=34;rounded=1;" value="2. Activación por periodicidad" vertex="1">
+          <mxGeometry height="620" width="290" x="550" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="v5" parent="1" style="swimlane;whiteSpace=wrap;html=1;fillColor=#a20025;strokeColor=#6F0000;fontColor=#ffffff;fontStyle=1;fontSize=16;startSize=34;rounded=1;" value="3. Pipeline n8n: extracción, validación y normalización" vertex="1">
+          <mxGeometry height="910" width="620" x="880" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="v23" parent="v5" style="rounded=1;whiteSpace=wrap;html=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Extract From File / Parser&lt;/b&gt;&lt;br&gt;Lectura CSV, XLSX o ZIP según la fuente; separación entre dato crudo y dato procesado" vertex="1">
+          <mxGeometry height="75" width="550" x="43" y="483" as="geometry" />
+        </mxCell>
+        <mxCell id="v6" parent="1" style="swimlane;whiteSpace=wrap;html=1;fillColor=#a20025;strokeColor=#6F0000;fontColor=#ffffff;fontStyle=1;fontSize=16;startSize=34;rounded=1;" value="4. Salidas, trazabilidad e integración con Datos" vertex="1">
+          <mxGeometry height="910" width="570" x="1540" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="v7" parent="1" style="swimlane;whiteSpace=wrap;html=1;fontStyle=1;fontSize=16;startSize=34;rounded=1;" value="5. Ruta común de errores y continuidad operativa" vertex="1">
+          <mxGeometry height="270" width="1580" x="460" y="760" as="geometry" />
+        </mxCell>
+        <mxCell id="v29" parent="v7" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDF2F8;strokeColor=#DB2777;fontColor=#831843;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Correo al equipo de Datos&lt;/b&gt;&lt;br&gt;Resumen: archivos nuevos, fuentes correctas, fuentes fallidas, ruta de carpetas y tablas Oracle actualizadas" vertex="1">
+          <mxGeometry height="115" width="480" x="1132" y="-39" as="geometry" />
+        </mxCell>
+        <mxCell id="v33" parent="v7" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Registrar incidente&lt;/b&gt;&lt;br&gt;Fuente, causa, timestamp, intento y estado" vertex="1">
+          <mxGeometry height="70" width="270" x="595" y="152" as="geometry" />
+        </mxCell>
+        <mxCell id="v8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=left;verticalAlign=top;spacing=10;" value="&lt;b&gt;DOCUMENTOS_RPA_RETO_FINAL.xlsx&lt;/b&gt;&lt;br&gt;Inventario del tablero, enlaces de descarga y estructura esperada de datos" vertex="1">
+          <mxGeometry height="70" width="410" x="70" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="v9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Diarias&lt;/b&gt;&lt;br&gt;BCE Sector Externo: WTI&lt;br&gt;BCE Publicaciones: Riesgo país" vertex="1">
+          <mxGeometry height="82" width="410" x="70" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="v10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Mensuales&lt;/b&gt;&lt;br&gt;BCE Sector Real: IEE&lt;br&gt;Supercias Directorio: compañías activas" vertex="1">
+          <mxGeometry height="82" width="410" x="70" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="v11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Trimestral&lt;/b&gt;&lt;br&gt;INEC ENEMDU: empleo, subempleo y desempleo" vertex="1">
+          <mxGeometry height="70" width="410" x="70" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="v12" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Anuales / estáticas&lt;/b&gt;&lt;br&gt;BCE Cuentas Nacionales&lt;br&gt;INEC Censo 2022&lt;br&gt;Supercias Ranking&lt;br&gt;MINEDUC AMIE" vertex="1">
+          <mxGeometry height="118" width="410" x="70" y="550" as="geometry" />
+        </mxCell>
+        <mxCell id="v13" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=left;verticalAlign=top;spacing=10;" value="&lt;b&gt;Criterio técnico&lt;/b&gt;&lt;br&gt;Como se usará solo n8n, las fuentes complejas se resolverán con HTTP Request inspeccionado, parámetros, headers y cookies cuando sea necesario. Si una fuente JSF no permite descarga directa, el flujo registra el incidente y notifica el estado." vertex="1">
+          <mxGeometry height="180" width="410" x="70" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="v14" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Manual Trigger&lt;/b&gt;&lt;br&gt;Pruebas iniciales y validación del tutor" vertex="1">
+          <mxGeometry height="70" width="230" x="580" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="v15" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Schedule diario&lt;/b&gt;&lt;br&gt;Petróleo WTI&lt;br&gt;Riesgo país" vertex="1">
+          <mxGeometry height="75" width="230" x="580" y="275" as="geometry" />
+        </mxCell>
+        <mxCell id="v16" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Schedule mensual&lt;/b&gt;&lt;br&gt;IEE&lt;br&gt;Directorio Supercias" vertex="1">
+          <mxGeometry height="75" width="230" x="580" y="375" as="geometry" />
+        </mxCell>
+        <mxCell id="v17" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Schedule trimestral&lt;/b&gt;&lt;br&gt;ENEMDU" vertex="1">
+          <mxGeometry height="65" width="230" x="580" y="475" as="geometry" />
+        </mxCell>
+        <mxCell id="v18" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Schedule anual / bajo demanda&lt;/b&gt;&lt;br&gt;Cuentas nacionales, Censo, Ranking, AMIE" vertex="1">
+          <mxGeometry height="85" width="230" x="580" y="565" as="geometry" />
+        </mxCell>
+        <mxCell id="v19" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;n8n Workflow Orchestrator&lt;/b&gt;&lt;br&gt;Un solo flujo modular con subramas por fuente y periodicidad" vertex="1">
+          <mxGeometry height="70" width="550" x="915" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="v20" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;HTTP Request por fuente&lt;/b&gt;&lt;br&gt;GET/POST, parámetros, headers, cookies, descarga binaria y control de respuesta HTTP" vertex="1">
+          <mxGeometry height="80" width="550" x="915" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="v21" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Guardar archivo crudo&lt;/b&gt;&lt;br&gt;datos_macroentorno/fuente/categoria/archivo_YYYYMMDD.ext" vertex="1">
+          <mxGeometry height="75" width="550" x="915" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="v22" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Validar descarga&lt;/b&gt;&lt;br&gt;HTTP 200, archivo no vacío, extensión esperada, columnas mínimas y fecha de actualización" vertex="1">
+          <mxGeometry height="85" width="550" x="915" y="485" as="geometry" />
+        </mxCell>
+        <mxCell id="v24" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Code Node: capa de abstracción&lt;/b&gt;&lt;br&gt;Estandariza nombres, fechas, unidades, columnas y estructura JSON común" vertex="1">
+          <mxGeometry height="85" width="550" x="915" y="710" as="geometry" />
+        </mxCell>
+        <mxCell id="v25" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Merge / Consolidación&lt;/b&gt;&lt;br&gt;Une resultados válidos, metadatos de ejecución y errores parciales" vertex="1">
+          <mxGeometry height="75" width="550" x="915" y="825" as="geometry" />
+        </mxCell>
+        <mxCell id="v26" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Repositorio de archivos trazables&lt;/b&gt;&lt;br&gt;datos_macroentorno/&lt;br&gt;├ bce/&lt;br&gt;├ inec/&lt;br&gt;├ supercias/&lt;br&gt;└ mineduc/&lt;br&gt;&lt;br&gt;Nombre: fuente_indicador_YYYYMMDD.ext" vertex="1">
+          <mxGeometry height="175" width="480" x="1585" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="v27" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Oracle Database&lt;/b&gt;&lt;br&gt;Esquema: MACROENTORNO&lt;br&gt;Tablas staging por fuente:&lt;br&gt;stg_bce_*, stg_inec_*, stg_supercias_*, stg_mineduc_*" vertex="1">
+          <mxGeometry height="145" width="480" x="1585" y="395" as="geometry" />
+        </mxCell>
+        <mxCell id="v28" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Log de ejecución&lt;/b&gt;&lt;br&gt;log_ejecuciones&lt;br&gt;log_errores&lt;br&gt;fuente, fecha, estado, intentos, ruta_archivo, mensaje_error" vertex="1">
+          <mxGeometry height="125" width="480" x="1585" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="v30" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Equipo de Datos&lt;/b&gt;&lt;br&gt;Limpieza, transformación y visualización del Tablero Macroentorno" vertex="1">
+          <mxGeometry height="80" width="480" x="1585" y="890" as="geometry" />
+        </mxCell>
+        <mxCell id="v35" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=left;verticalAlign=top;spacing=10;fillStyle=auto;" value="&lt;b&gt;Leyenda&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#2563EB&quot;&gt;Azul:&lt;/span&gt; fuentes públicas&lt;br&gt;&lt;span style=&quot;color:#059669&quot;&gt;Verde:&lt;/span&gt; triggers&lt;br&gt;&lt;span style=&quot;color:#F97316&quot;&gt;Naranja:&lt;/span&gt; n8n&lt;br&gt;&lt;span style=&quot;color:#7C3AED&quot;&gt;Morado:&lt;/span&gt; validación/normalización&lt;br&gt;&lt;span style=&quot;color:#4F46E5&quot;&gt;Índigo:&lt;/span&gt; almacenamiento y DB&lt;br&gt;&lt;span style=&quot;color:#DC2626&quot;&gt;Rojo:&lt;/span&gt; errores&lt;br&gt;&lt;br&gt;&lt;b&gt;Decisión:&lt;/b&gt; n8n únicamente; correo como canal de notificación común." vertex="1">
+          <mxGeometry height="330" width="340" x="2169" y="173" as="geometry" />
+        </mxCell>
+        <mxCell id="e37" edge="1" parent="1" source="v9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v15" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e38" edge="1" parent="1" source="v10" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v16" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e39" edge="1" parent="1" source="v11" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v17" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e40" edge="1" parent="1" source="v12" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v18" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e41" edge="1" parent="1" source="v8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v14" value="configuración">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e42" edge="1" parent="1" source="v14" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v19" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e43" edge="1" parent="1" source="v15" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v19" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e44" edge="1" parent="1" source="v16" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v19" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e45" edge="1" parent="1" source="v17" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v19" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e46" edge="1" parent="1" source="v18" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v19" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e47" edge="1" parent="1" source="v19" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v20" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e48" edge="1" parent="1" source="v20" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v21" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e49" edge="1" parent="1" source="v21" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v22" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e50" edge="1" parent="1" source="v22" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v23" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e51" edge="1" parent="1" source="v23" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v24" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e52" edge="1" parent="1" source="v24" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v25" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e53" edge="1" parent="1" source="v25" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v26" value="archivo crudo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e54" edge="1" parent="1" source="v25" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v27" value="datos normalizados">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e55" edge="1" parent="1" source="v25" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v28" value="historial">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e56" edge="1" parent="1" source="v25" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v29" value="resultado">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e57" edge="1" parent="1" source="v29" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;endArrow=block;endFill=1;" target="v30" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e58" edge="1" parent="1" source="v22" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#DC2626;strokeWidth=2;endArrow=block;endFill=1;dashed=1;" target="v31" value="si falla">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e59" edge="1" parent="1" source="v20" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#DC2626;strokeWidth=2;endArrow=block;endFill=1;dashed=1;" target="v31" value="timeout / error HTTP">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1190" y="360" />
+              <mxPoint x="695" y="360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e63" edge="1" parent="1" source="v34" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#DC2626;strokeWidth=2;endArrow=block;endFill=1;dashed=1;" target="v28" value="guardar error">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e65" edge="1" parent="1" source="v26" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4F46E5;strokeWidth=2;endArrow=block;endFill=1;dashed=1;" target="v27" value="carga posterior">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="v34" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF2F2;strokeColor=#DC2626;fontColor=#7F1D1D;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Notificar fallo parcial&lt;/b&gt;&lt;br&gt;El resto del pipeline continúa" vertex="1">
+          <mxGeometry height="70" width="270" x="1360" y="1070" as="geometry" />
+        </mxCell>
+        <mxCell id="e62" edge="1" parent="1" source="v33" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#DC2626;strokeWidth=2;endArrow=block;endFill=1;dashed=1;" target="v34" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e64" edge="1" parent="1" source="v34" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#DC2626;strokeWidth=2;endArrow=block;endFill=1;dashed=1;" target="v29" value="resumen con errores">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="v31" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF2F2;strokeColor=#DC2626;fontColor=#7F1D1D;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Retry controlado&lt;/b&gt;&lt;br&gt;Hasta 3 intentos por fuente" vertex="1">
+          <mxGeometry height="70" width="250" x="410" y="1040" as="geometry" />
+        </mxCell>
+        <mxCell id="e60" edge="1" parent="1" source="v31" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#DC2626;strokeWidth=2;endArrow=block;endFill=1;dashed=1;" target="v32" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="v32" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF2F2;strokeColor=#DC2626;fontColor=#7F1D1D;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Última versión válida&lt;/b&gt;&lt;br&gt;Usar respaldo si existe" vertex="1">
+          <mxGeometry height="70" width="250" x="810" y="1040" as="geometry" />
+        </mxCell>
+        <mxCell id="e61" edge="1" parent="1" source="v32" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#DC2626;strokeWidth=2;endArrow=block;endFill=1;dashed=1;" target="v33" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

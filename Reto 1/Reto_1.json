@@ -1,0 +1,369 @@
+{
+  "name": "Reto_1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -736,
+        416
+      ],
+      "id": "cf543653-ce86-4886-af5a-95625296360e",
+      "name": "Inicio de Pipeline"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9a7727ee-ed18-4077-a121-88767c2d6348",
+              "name": "ciudades",
+              "value": "[   { \"ciudad\": \"Loja\", \"lat\": -3.9931, \"lon\": -79.2042 },   { \"ciudad\": \"Quito\", \"lat\": -0.1807, \"lon\": -78.4678 },   { \"ciudad\": \"Guayaquil\", \"lat\": -2.1709, \"lon\": -79.9224 },   { \"ciudad\": \"Cuenca\", \"lat\": -2.9006, \"lon\": -79.0045 },   { \"ciudad\": \"Manta\", \"lat\": -0.9677, \"lon\": -80.7089 } ]",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -496,
+        224
+      ],
+      "id": "54fb22cb-b99f-4bef-8963-a14d32913e5b",
+      "name": "Ciudades de Ecuador"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "cac09b92-9905-4814-8fc3-f25ce2f364ac",
+      "name": "Iterar Ciudades"
+    },
+    {
+      "parameters": {
+        "url": "https://restcountries.com/v3.1/alpha?codes=EC,CO,PE",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -496,
+        416
+      ],
+      "id": "0f0d1b31-84c3-40fa-9ba1-79675768e07e",
+      "name": "Consultar REST Countries",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://openlibrary.org/search.json?q=automatizacion%20de%20procesos",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -496,
+        624
+      ],
+      "id": "399b26d0-f30f-4965-9d22-875146e3f543",
+      "name": "Consultar Open Library",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "if ($json.statusCode || $json.error || !$json.docs) {\n\n  return [{\n    json: {\n      error: {\n        nodo: \"Libros\",\n        fuente: \"open-library\",\n        mensaje:\n          $json.message ||\n          $json.error?.message ||\n          \"Error en Open Library\",\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n\n}\n\nconst libros = $json.docs\n  .filter(libro =>\n    libro.first_publish_year &&\n    libro.first_publish_year >= 2015\n  )\n  .slice(0, 10)\n  .map(libro => ({\n    titulo: libro.title,\n    autor: libro.author_name?.[0] || \"Autor desconocido\",\n    anio: libro.first_publish_year\n  }));\n\nreturn [{\n  json: {\n    recursos_academicos: libros\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        624
+      ],
+      "id": "cc765d27-e16e-41a9-91d9-51a3d5843742",
+      "name": "Filtrar Recursos Académicos"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        256,
+        400
+      ],
+      "id": "2f206ea9-be45-4fcc-9437-15864ffc2cf8",
+      "name": "Unir Ramas de Pipeline"
+    },
+    {
+      "parameters": {
+        "jsCode": "const temperaturas = items\n  .filter(item => item.json.temperatura !== null && item.json.temperatura !== undefined)\n  .map(item => ({\n    ciudad: item.json.ciudad_nombre,\n    temperatura: item.json.temperatura,\n    viento: item.json.viento,\n  }));\n\nif (temperaturas.length === 0) {\n  return [{\n    json: {\n      clima_regional: {\n        error: \"No se recibieron temperaturas válidas\"\n      }\n    }\n  }];\n}\n\nconst temps = temperaturas.map(t => t.temperatura);\n\nconst promedio = temps.reduce((a, b) => a + b, 0) / temps.length;\n\nconst ciudad_mas_caliente = temperaturas.reduce((max, actual) =>\n  actual.temperatura > max.temperatura ? actual : max\n);\n\nconst ciudad_mas_fria = temperaturas.reduce((min, actual) =>\n  actual.temperatura < min.temperatura ? actual : min\n);\n\nreturn [{\n  json: {\n    clima_regional: {\n      ciudades_detalle: temperaturas,\n      estadisticas: {\n        promedio: Number(promedio.toFixed(1)),\n        maxima: Math.max(...temps),\n        minima: Math.min(...temps),\n        ciudad_mas_caliente,\n        ciudad_mas_fria\n      }\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        -16
+      ],
+      "id": "fc04ed4d-f72e-436b-be7d-46a671cf3da0",
+      "name": "Calculo de Estaditicas Climaticas"
+    },
+    {
+      "parameters": {
+        "jsCode": "const salida = {\n  reporte: {\n    version: \"1.0\",\n    timestamp: new Date().toISOString(),\n    estado: \"completo\",\n    fuentes: [\"open-meteo\", \"rest-countries\", \"open-library\"],\n    clima_regional: null,\n    contexto_pais: null,\n    recursos_academicos: null,\n    errores: []\n  }\n};\n\nfor (const item of items) {\n  if (item.json.clima_regional) salida.reporte.clima_regional = item.json.clima_regional;\n  if (item.json.contexto_pais) salida.reporte.contexto_pais = item.json.contexto_pais;\n  if (item.json.recursos_academicos) salida.reporte.recursos_academicos = item.json.recursos_academicos;\n\n  if (item.json.error || item.json.message || item.json.statusCode >= 400) {\n    salida.reporte.estado = \"incompleto\";\n    salida.reporte.errores.push({\n      nodo: item.json.node || \"Nodo con error\",\n      mensaje: item.json.error?.message || item.json.message || \"Error detectado en una rama\",\n      timestamp: new Date().toISOString()\n    });\n  }\n}\n\nreturn [{ json: salida }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        240
+      ],
+      "id": "91d6b84a-a5bf-482b-adc4-7d17995002ff",
+      "name": "Reporte"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $json.ciudades.map(c => ({\n  json: c\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        0
+      ],
+      "id": "03f4bb11-2eb1-4556-b2fb-a9af639b5945",
+      "name": "Transformar Lista ciudades"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.open-meteo.com/v1/forecast",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "latitude",
+              "value": "={{ $json.lat }}"
+            },
+            {
+              "name": "longitude",
+              "value": "={{ $json.lon }}"
+            },
+            {
+              "name": "current_weather",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -16,
+        224
+      ],
+      "id": "d5e1ab62-017a-4ade-bd04-73c461e338a2",
+      "name": "Consulta de clima Open-Meteo",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ciudad = $('Iterar Ciudades').item.json;\n\nreturn [{\n  json: {\n    ciudad_nombre: ciudad.ciudad,\n    lat: ciudad.lat,\n    lon: ciudad.lon,\n    temperatura: $json.current_weather.temperature,\n    viento: $json.current_weather.windspeed\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -272,
+        224
+      ],
+      "id": "e9a3d9fe-d430-4241-9f80-0aa18b2bc53a",
+      "name": "Normalización De Datos Climáticos"
+    },
+    {
+      "parameters": {
+        "jsCode": "const paises = items.map(item => {\n  const pais = item.json;\n\n  const monedaKey = Object.keys(pais.currencies || {})[0];\n  const idiomaKey = Object.keys(pais.languages || {})[0];\n\n  return {\n    nombre: pais.name?.common || \"No disponible\",\n    capital: pais.capital?.[0] || \"No disponible\",\n    poblacion: pais.population || 0,\n    area: pais.area || 0,\n    densidad: pais.area\n      ? Number((pais.population / pais.area).toFixed(2))\n      : 0,\n    moneda: monedaKey\n      ? pais.currencies[monedaKey].name\n      : \"No disponible\",\n    idioma_oficial: idiomaKey\n      ? pais.languages[idiomaKey]\n      : \"No disponible\"\n  };\n});\n\nreturn [{\n  json: {\n    contexto_pais: paises\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        416
+      ],
+      "id": "26be3929-2fa4-456a-8434-876c93029ca1",
+      "name": "Normalizacion De Indicadores País"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Inicio de Pipeline": {
+      "main": [
+        [
+          {
+            "node": "Ciudades de Ecuador",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Consultar REST Countries",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Consultar Open Library",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ciudades de Ecuador": {
+      "main": [
+        [
+          {
+            "node": "Transformar Lista ciudades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Iterar Ciudades": {
+      "main": [
+        [
+          {
+            "node": "Calculo de Estaditicas Climaticas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consulta de clima Open-Meteo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar REST Countries": {
+      "main": [
+        [
+          {
+            "node": "Normalizacion De Indicadores País",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Open Library": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Recursos Académicos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Recursos Académicos": {
+      "main": [
+        [
+          {
+            "node": "Unir Ramas de Pipeline",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Unir Ramas de Pipeline": {
+      "main": [
+        [
+          {
+            "node": "Reporte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculo de Estaditicas Climaticas": {
+      "main": [
+        [
+          {
+            "node": "Unir Ramas de Pipeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transformar Lista ciudades": {
+      "main": [
+        [
+          {
+            "node": "Iterar Ciudades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta de clima Open-Meteo": {
+      "main": [
+        [
+          {
+            "node": "Normalización De Datos Climáticos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalización De Datos Climáticos": {
+      "main": [
+        [
+          {
+            "node": "Iterar Ciudades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizacion De Indicadores País": {
+      "main": [
+        [
+          {
+            "node": "Unir Ramas de Pipeline",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "575c2041-9cd1-4dde-a0db-7b5b3bc37b5a",
+  "meta": {
+    "instanceId": "9502df90a509d5d7bcf0cdd2883b48360a38a2e461d07b2891dc8aa9f9758f07"
+  },
+  "nodeGroups": [],
+  "id": "jdDbsL59sPtIKUHq",
+  "tags": []
+}

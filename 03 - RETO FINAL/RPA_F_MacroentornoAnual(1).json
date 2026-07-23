@@ -1,0 +1,909 @@
+{
+  "name": "RPA_F_MacroentornoAnual",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {
+          "sheetName": "PIB pc real"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        320,
+        1024
+      ],
+      "id": "b52ec98d-e7a2-4d65-867a-1544284a7868",
+      "name": "Extraer PIB pc real"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {
+          "sheetName": "PIB pc nominal"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        336,
+        1168
+      ],
+      "id": "5ce1bb37-34db-4036-80e1-d9ad4067246a",
+      "name": "Extraer PIB pc nominal"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {
+          "sheetName": "6.1"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        304,
+        432
+      ],
+      "id": "0503226c-ac84-43fa-91f1-be951e46c8cd",
+      "name": "Extract Grupo de ocupación por provincia"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.URL_CSV_DINAMICO }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        576,
+        640
+      ],
+      "id": "9b3e2f39-1ab6-4945-b1d3-88aae169fe01",
+      "name": "HTTP obtener_csv",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Capturamos el HTML crudo entregado por el Nodo 1\nconst htmlPuro = $input.first().json.data;\nconst enlacesEncontrados = [];\n\n// Expresión regular elástica: Busca cualquier URL entre comillas que contenga \"RegistrosAdministrativos\" y termine en \".csv\"\n// Sin importar si dice MINEDUC, MINEDEC, tiene guiones bajos o errores de tipeo.\nconst regexExtractorUrls = /href=\"([^\"]*RegistrosAdministrativos[^\"]*\\.csv)\"/gi;\n\nlet coincidencia;\n// Buscamos todas las URLs coincidentes dentro del HTML de la página\nwhile ((coincidencia = regexExtractorUrls.exec(htmlPuro)) !== null) {\n  const urlCompleta = coincidencia[1];\n\n  // Expresión regular para extraer los años fiscales del archivo (ej: \"2025-2026\")\n  const regexAnio = /(\\d{4})-\\d{4}/;\n  const matchAnio = urlCompleta.match(regexAnio);\n\n  if (matchAnio) {\n    // Tomamos el año de inicio (ej: \"2025\") y lo convertimos a entero para poder ordenarlo matemáticamente\n    const anioBase = parseInt(matchAnio[1], 10);\n    \n    enlacesEncontrados.push({\n      url: urlCompleta,\n      anio: anioBase\n    });\n  }\n}\n\nif (enlacesEncontrados.length === 0) {\n  throw new Error(\"Control de Contingencia: No se detectaron enlaces CSV válidos en el código fuente de la página.\");\n}\n\n// 2. ORDENACIÓN CRONOLÓGICA INVERSA (De mayor a menor año)\n// Esto garantiza que el año más actual (ej: 2025) quede siempre en la posición [0]\nenlacesEncontrados.sort((a, b) => b.anio - a.anio);\n\n// Aislamos el registro ganador\nconst descargaMasReciente = enlacesEncontrados[0];\n\n// Retornamos el payload normalizado para los siguientes nodos del pipeline\nreturn [{\n  json: {\n    INDICADOR: \"MINEDUC_AMIE_COSTA\",\n    FECHA_FISCAL: descargaMasReciente.anio.toString(), // Guardará \"2025\", \"2026\", etc.\n    URL_CSV_DINAMICO: descargaMasReciente.url,       // ◄--- La URL real mutada y corregida del Ministerio\n    ESTADO: \"COMPLETO\",\n    NECESITA_RESPALDO: 0,\n    DETALLE_ERROR: \"\"\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        640
+      ],
+      "id": "0fd55523-e253-4d9e-8b88-f29a47c23739",
+      "name": "Code_obtener_archivo_actual"
+    },
+    {
+      "parameters": {
+        "url": "https://contenido.bce.fin.ec/documentos/informacioneconomica/cuentasnacionales/anuales/bam_mei_2018_2024p.xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -240,
+        1024
+      ],
+      "id": "462b2e58-f37a-4adc-a2a8-0452c87704c1",
+      "name": "BCE Matriz Empleo e Ingresos",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://contenido.bce.fin.ec/documentos/informacioneconomica/cuentasnacionales/anuales/retropolacion_1965_2024p.xlsx",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -256,
+        832
+      ],
+      "id": "ac7b9205-54b5-4be7-9aab-9d226e445cf1",
+      "name": "BCE PIB real, PIB per cápita",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://educacion.gob.ec/base-de-datos/",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -272,
+        608
+      ],
+      "id": "0e982492-7112-4206-a191-d5f377c6088c",
+      "name": "MINEDUC registro instituciones",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "value": "ADMIN",
+          "mode": "list",
+          "cachedResultName": "ADMIN"
+        },
+        "table": {
+          "__rl": true,
+          "value": "TAB_CONSOLIDADO_MACRO",
+          "mode": "list",
+          "cachedResultName": "TAB_CONSOLIDADO_MACRO"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {
+            "NECESITA_RESPALDO": 0,
+            "ID": 0
+          },
+          "matchingColumns": [
+            "FECHA_FISCAL",
+            "INDICADOR"
+          ],
+          "schema": [
+            {
+              "id": "DATOS_JSON",
+              "displayName": "DATOS_JSON",
+              "required": false,
+              "display": true,
+              "type": "object",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "DETALLE_ERROR",
+              "displayName": "DETALLE_ERROR",
+              "required": false,
+              "display": true,
+              "type": "string",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ESTADO",
+              "displayName": "ESTADO",
+              "required": true,
+              "display": true,
+              "type": "string",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "FECHA_EXTRACCION",
+              "displayName": "FECHA_EXTRACCION",
+              "required": true,
+              "display": true,
+              "type": "dateTime",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "FECHA_FISCAL",
+              "displayName": "FECHA_FISCAL",
+              "required": false,
+              "display": true,
+              "type": "string",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "display": true,
+              "type": "number",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "INDICADOR",
+              "displayName": "INDICADOR",
+              "required": true,
+              "display": true,
+              "type": "string",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "NECESITA_RESPALDO",
+              "displayName": "NECESITA_RESPALDO",
+              "required": true,
+              "display": true,
+              "type": "number",
+              "defaultMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.oracleDatabase",
+      "typeVersion": 1,
+      "position": [
+        1168,
+        768
+      ],
+      "id": "1cf8173a-1c54-4eee-8215-de6ff685b417",
+      "name": "Oracle_Upsert_Anual",
+      "credentials": {
+        "oracleDBApi": {
+          "id": "uxs4uqou4yJeqdVn",
+          "name": "Oracle Database Credentials account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "months",
+              "monthsInterval": 12,
+              "triggerAtDayOfMonth": 15,
+              "triggerAtHour": 9,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -784,
+        560
+      ],
+      "id": "f48c9518-c75d-4de9-9a09-f18f3e0d9deb",
+      "name": "Schedule_Anual"
+    },
+    {
+      "parameters": {
+        "url": "https://appscvsmovil.supercias.gob.ec/ranking/recursos/bi_ranking.csv",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -272,
+        128
+      ],
+      "id": "a914381e-8311-4d16-a339-d21eda241562",
+      "name": "HTTP_Supercias_Ranking",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://www.censoecuador.gob.ec/wp-content/uploads/2024/04/2022_CPV_Trabajo.xlsx",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -288,
+        368
+      ],
+      "id": "f625a976-4a43-491e-9c12-cb3a40335c07",
+      "name": "HTTP_MINEDUC_AMIE_Pagina",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawItems = $input.all();\nconst listaConsolidada = [];\n\n// Expresión regular para capturar dinámicamente cualquier año (ej: 2022, 2030) en las cabeceras\nconst regexAnioDinamico = /\\b(20\\d{2})\\b/; \nlet anioDetectado = null;\n\n// =========================================================================\n// FASE 1: ESCANEO DINÁMICO DE CABECERAS (Busca el año real del documento)\n// =========================================================================\nfor (let i = 0; i < Math.min(rawItems.length, 20); i++) {\n  const filaData = rawItems[i].json;\n  for (const propiedad in filaData) {\n    const textoCelda = String(filaData[propiedad]);\n    const coincidencia = textoCelda.match(regexAnioDinamico);\n    \n    if (coincidencia) {\n      anioDetectado = coincidencia[1]; // Captura el año (ej: \"2022\")\n      break;\n    }\n  }\n  if (anioDetectado) break; // Si ya lo encontramos, detenemos el escaneo preliminar\n}\n\n// Fallback de seguridad en caso de que el archivo venga corrupto o sin títulos\nif (!anioDetectado) {\n  anioDetectado = \"2022\"; \n}\n\n// Función auxiliar para limpiar y parsear enteros del INEC\nfunction parsearNumeroCenso(val) {\n  if (val === undefined || val === null || val === '') return null;\n  if (typeof val === 'number') return val;\n  const limpio = val.toString().replace(/\\./g, '').trim();\n  const num = parseInt(limpio, 10);\n  return isNaN(num) ? null : num;\n}\n\n// =========================================================================\n// FASE 2: PROCESAMIENTO Y TRADUCCIÓN DE LA MATRIZ CENSAL\n// =========================================================================\nfor (const item of rawItems) {\n  const data = item.json;\n  \n  const provincia = data.__EMPTY ? data.__EMPTY.toString().trim() : \"\";\n  const canton = data.__EMPTY_1 ? data.__EMPTY_1.toString().trim() : \"\";\n  const sexo = data.__EMPTY_3 ? data.__EMPTY_3.toString().trim() : \"\";  \n  const edad = data.__EMPTY_4 ? data.__EMPTY_4.toString().trim() : \"\";  \n\n  // Escudo contra filas de basura, títulos e índices\n  if (!sexo || sexo.includes(\"sexo\") || sexo === \"Sexo\" || sexo === \"\" || provincia.includes(\"Índice\")) {\n    continue;\n  }\n  if (!edad || edad.includes(\"edad\") || edad === \"Edad\" || edad === \"\") {\n    continue;\n  }\n\n  // CONSTRUCCIÓN DE LA LLAVE ÚNICA CON EL AÑO DETECTADO DINÁMICAMENTE\n  // Si mañana el INEC sube el censo 2030, esta llave mutará sola a: \"2030_Azuay_Cuenca...\"\n  const llaveCompuesta = `${anioDetectado}_${provincia}_${canton}_${sexo}_${edad}`.replace(/\\s+/g, '');\n  const fechaFiscalClave = llaveCompuesta.substring(0, 50); \n\n  listaConsolidada.push({\n    json: {\n      INDICADOR: \"CENSO_RAMA_ACTIVIDAD\", // Nombre genérico para admitir múltiples censos en la misma tabla\n      FECHA_FISCAL: fechaFiscalClave,   \n      FECHA_EXTRACCION: new Date(),     \n      ESTADO: \"COMPLETO\",\n      NECESITA_RESPALDO: 0,\n      DETALLE_ERROR: \"\",\n      DATOS_JSON: JSON.stringify({\n        anio_censo: parseInt(anioDetectado, 10), // Guardado dinámico como entero\n        provincia: provincia,\n        canton: canton,\n        sexo: sexo,\n        rango_edad: edad,\n        total_ocupados: parsearNumeroCenso(data.__EMPTY_5), \n        ramas_actividad: {\n          agricultura_pesca: parsearNumeroCenso(data.__EMPTY_6),\n          minas_canteras: parsearNumeroCenso(data.__EMPTY_7),\n          industrias_manufactureras: parsearNumeroCenso(data.__EMPTY_8),\n          electricidad_gas: parsearNumeroCenso(data.__EMPTY_9),\n          agua_saneamiento: parsearNumeroCenso(data.__EMPTY_10),\n          construccion: parsearNumeroCenso(data.__EMPTY_11),\n          comercio: parsearNumeroCenso(data.__EMPTY_12),\n          transporte_almacenamiento: parsearNumeroCenso(data.__EMPTY_13),\n          alojamiento_comidas: parsearNumeroCenso(data.__EMPTY_14),\n          informacion_comunicacion: parsearNumeroCenso(data.__EMPTY_15),\n          financieras_seguros: parsearNumeroCenso(data.__EMPTY_16),\n          inmobiliarias: parsearNumeroCenso(data.__EMPTY_17),\n          profesionales_cientificas: parsearNumeroCenso(data.__EMPTY_18),\n          servicios_administrativos: parsearNumeroCenso(data.__EMPTY_19),\n          administracion_publica: parsearNumeroCenso(data.__EMPTY_20),\n          ensenanza: parsearNumeroCenso(data.__EMPTY_21),\n          salud_asistencia: parsearNumeroCenso(data.__EMPTY_22),\n          arte_entretenimiento: parsearNumeroCenso(data.__EMPTY_23),\n          otros_servicios: parsearNumeroCenso(data.__EMPTY_24),\n          hogares_empleadores: parsearNumeroCenso(data.__EMPTY_25),\n          organizaciones_extraterritoriales: parsearNumeroCenso(data.__EMPTY_26),\n          no_clasificado: parsearNumeroCenso(data.__EMPTY_27) \n        },\n        fuente: \"Instituto Nacional de Estadística y Censos (INEC)\",\n        ruta_logica: \"INEC/CENSO_POBLACION/RAMAS_ACTIVIDAD\"\n      })\n    }\n  });\n}\n\nreturn listaConsolidada;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        272
+      ],
+      "id": "02132a3a-18d1-417c-a426-9498c8a65d0b",
+      "name": "Code_Transformar_BCE_Total_Empleo"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawItems = $input.all();\nconst listaConsolidada = [];\n\n// Expresión regular para capturar dinámicamente cualquier año (ej: 2022, 2030) en las cabeceras\nconst regexAnioDinamico = /\\b(20\\d{2})\\b/; \nlet anioDetectado = null;\n\n// =========================================================================\n// FASE 1: ESCANEO DINÁMICO DE CABECERAS (Busca el año real del documento)\n// =========================================================================\nfor (let i = 0; i < Math.min(rawItems.length, 20); i++) {\n  const filaData = rawItems[i].json;\n  for (const propiedad in filaData) {\n    const textoCelda = String(filaData[propiedad]);\n    const coincidencia = textoCelda.match(regexAnioDinamico);\n    \n    if (coincidencia) {\n      anioDetectado = coincidencia[1]; // Captura el año dinámico (ej: \"2022\")\n      break;\n    }\n  }\n  if (anioDetectado) break; \n}\n\n// Fallback de seguridad en caso de anomalías en el archivo original\nif (!anioDetectado) {\n  anioDetectado = \"2022\"; \n}\n\n// Función auxiliar para limpiar y parsear enteros del INEC (elimina los puntos de miles)\nfunction parsearNumeroCenso(val) {\n  if (val === undefined || val === null || val === '') return null;\n  if (typeof val === 'number') return val;\n  const limpio = val.toString().replace(/\\./g, '').trim();\n  const num = parseInt(limpio, 10);\n  return isNaN(num) ? null : num;\n}\n\n// =========================================================================\n// FASE 2: PROCESAMIENTO Y TRADUCCIÓN DE LA MATRIZ DE OCUPACIONES\n// =========================================================================\nfor (const item of rawItems) {\n  const data = item.json;\n  \n  // Conservamos el mapeo de control de dimensiones con el desfase corregido de la hoja anterior\n  const provincia = data.__EMPTY ? data.__EMPTY.toString().trim() : \"\";\n  const canton = data.__EMPTY_1 ? data.__EMPTY_1.toString().trim() : \"\";\n  const sexo = data.__EMPTY_3 ? data.__EMPTY_3.toString().trim() : \"\";  \n  const edad = data.__EMPTY_4 ? data.__EMPTY_4.toString().trim() : \"\";  \n\n  // Escudo contra filas de basura, cabeceras redundantes e índices parciales\n  if (!sexo || sexo.includes(\"sexo\") || sexo === \"Sexo\" || sexo === \"\" || provincia.includes(\"Índice\")) {\n    continue;\n  }\n  if (!edad || edad.includes(\"edad\") || edad === \"Edad\" || edad === \"\") {\n    continue;\n  }\n\n  // CONSTRUCCIÓN DE LA LLAVE ÚNICA DINÁMICA\n  // Evita colisiones con la hoja 5.1 usando un INDICADOR único, pero mantiene la coherencia de periodos\n  const llaveCompuesta = `${anioDetectado}_${provincia}_${canton}_${sexo}_${edad}`.replace(/\\s+/g, '');\n  const fechaFiscalClave = llaveCompuesta.substring(0, 50); \n\n  listaConsolidada.push({\n    json: {\n      INDICADOR: \"CENSO_GRUPO_OCUPACION\", // ◄--- Identificador exclusivo para separar esta matriz horizontal de la anterior\n      FECHA_FISCAL: fechaFiscalClave,   \n      FECHA_EXTRACCION: new Date(),     \n      ESTADO: \"COMPLETO\",\n      NECESITA_RESPALDO: 0,\n      DETALLE_ERROR: \"\",\n      DATOS_JSON: JSON.stringify({\n        anio_censo: parseInt(anioDetectado, 10),\n        provincia: provincia,\n        canton: canton,\n        sexo: sexo,\n        rango_edad: edad,\n        total_ocupados: parsearNumeroCenso(data.__EMPTY_5), \n        // Estructura limpia de las 11 columnas mapeadas secuencialmente desde las imágenes 2 y 3\n        grupos_ocupacion: {\n          ocupaciones_militares: parsearNumeroCenso(data.__EMPTY_6),\n          directores_gerentes: parsearNumeroCenso(data.__EMPTY_7),\n          profesionales_cientificos: parsearNumeroCenso(data.__EMPTY_8),\n          tecnicos_profesionales: parsearNumeroCenso(data.__EMPTY_9),\n          personal_apoyo: parsearNumeroCenso(data.__EMPTY_10),\n          trabajadores_servicios: parsearNumeroCenso(data.__EMPTY_11),\n          agricultores_trabajadores: parsearNumeroCenso(data.__EMPTY_12),\n          oficiales_operarios: parsearNumeroCenso(data.__EMPTY_13),\n          operadores_maquinaria: parsearNumeroCenso(data.__EMPTY_14),\n          ocupaciones_elementales: parsearNumeroCenso(data.__EMPTY_15),\n          no_especificado: parsearNumeroCenso(data.__EMPTY_16) // ◄--- Columna de cierre verificada en img3\n        },\n        fuente: \"Instituto Nacional de Estadística y Censos (INEC)\",\n        ruta_logica: \"INEC/CENSO_POBLACION/GRUPOS_OCUPACION\"\n      })\n    }\n  });\n}\n\nreturn listaConsolidada;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        416
+      ],
+      "id": "ce31b072-79ef-4a56-907a-da12b0ccec05",
+      "name": "Code_Transformar_BCE_VAB"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Leemos el archivo binario descargado por el nodo HTTP Request anterior\nconst itemBinario = $input.first();\nconst archivoPlanoText = await this.helpers.getBinaryDataBuffer(0, 'data');\n\n// Soportamos el salto de línea estándar de archivos CSV (\\n o \\r\\n)\nconst lineas = archivoPlanoText.toString('utf-8').split(/\\r?\\n/);\nconst listaFilasProcesadas = [];\n\n// Función para limpiar celdas y parsear números enteros con puntos de miles o guiones vacíos\nfunction parsearNumeroMineduc(val) {\n  if (val === undefined || val === null) return 0;\n  // Eliminamos espacios en blanco comunes y espacios de no ruptura (\\u00A0)\n  let limpio = val.toString().replace(/[\\s\\u00A0]/g, '').trim();\n  // Si la celda contiene el guion de ausencia o está vacía, su valor lógico es 0\n  if (limpio === '-' || limpio === '' || limpio === '.-') return 0;\n  // Removemos los puntos de miles para que JavaScript no lo trate como decimal\n  limpio = limpio.replace(/\\./g, '');\n  const num = parseInt(limpio, 10);\n  return isNaN(num) ? 0 : num;\n}\n\n// Empezamos en el índice 1 para saltarnos la fila de cabeceras (headers)\nfor (let i = 1; i < lineas.length; i++) {\n  const filaCruda = lineas[i];\n  if (!filaCruda.trim()) continue; // Ignoramos líneas vacías al final del documento\n\n  // Separamos las columnas por punto y coma (;) según la especificación de la fuente\n  const celdas = filaCruda.split(';');\n\n  // Validación de seguridad: Si la fila no tiene al menos el código AMIE, está corrupta\n  const amieCodigo = celdas[1] ? celdas[1].trim() : \"\";\n  if (!amieCodigo || amieCodigo === \"AMIE\") continue;\n\n  // EXTRAER EL AÑO BASE DE FORMA DINÁMICA\n  // \"2025-2026 Inicio\" -> Tomamos los primeros 4 dígitos (\"2025\") para mantener la coherencia cronológica\n  const anioLectivoRaw = celdas[0] ? celdas[0].trim() : \"\";\n  const matchAnio = anioLectivoRaw.match(/^(\\d{4})/);\n  const anioFiscal = matchAnio ? matchAnio[1] : \"2025\";\n\n  // GENERACIÓN DE LA LLAVE ÚNICA DE NEGOCIO (FECHA_FISCAL)\n  // Combinamos el año base con el código AMIE único de la institución (Ej: \"2025_10H00120\")\n  // Esto garantiza que el Upsert de Oracle actualice los datos si el Ministerio altera el archivo, sin duplicar escuelas.\n  const fechaFiscalClave = `${anioFiscal}_${amieCodigo}`.replace(/\\s+/g, '');\n\n  listaFilasProcesadas.push({\n    json: {\n      INDICADOR: \"MINEDUC_AMIE_COSTA\",\n      FECHA_FISCAL: fechaFiscalClave.substring(0, 150),\n      FECHA_EXTRACCION: new Date(),\n      ESTADO: \"COMPLETO\",\n      NECESITA_RESPALDO: 0,\n      DETALLE_ERROR: \"\",\n      DATOS_JSON: JSON.stringify({\n        periodo_lectivo: anioLectivoRaw,\n        anio_base: parseInt(anioFiscal, 10),\n        \n        // 🏢 1. Metadata e Infraestructura de la Institución\n        institucion: {\n          amie: amieCodigo,\n          nombre: celdas[2] ? celdas[2].trim() : \"\",\n          zona: celdas[3] ? celdas[3].trim() : \"\",\n          provincia: celdas[4] ? celdas[4].trim() : \"\",\n          cod_provincia: celdas[5] ? celdas[5].trim() : \"\",\n          canton: celdas[6] ? celdas[6].trim() : \"\",\n          cod_canton: celdas[7] ? celdas[7].trim() : \"\",\n          parroquia: celdas[8] ? celdas[8].trim() : \"\",\n          cod_parroquia: celdas[9] ? celdas[9].trim() : \"\",\n          escolarizacion: celdas[10] ? celdas[10].trim() : \"\",\n          tipo_educacion: celdas[11] ? celdas[11].trim() : \"\",\n          nivel_educacion: celdas[12] ? celdas[12].trim() : \"\",\n          sostenimiento: celdas[13] ? celdas[13].trim() : \"\",\n          area: celdas[14] ? celdas[14].trim() : \"\",\n          regimen_escolar: celdas[15] ? celdas[15].trim() : \"\",\n          jurisdiccion: celdas[16] ? celdas[16].trim() : \"\",\n          modalidad: celdas[17] ? celdas[17].trim() : \"\",\n          jornada: celdas[18] ? celdas[18].trim() : \"\",\n          tenencia_inmueble: celdas[19] ? celdas[19].trim() : \"\",\n          acceso_edificio: celdas[20] ? celdas[20].trim() : \"\"\n        },\n\n        // 👥 2. Datos del Personal (Docente y Administrativo)\n        personal: {\n          docentes_mujeres: parsearNumeroMineduc(celdas[21]),\n          docentes_hombres: parsearNumeroMineduc(celdas[22]),\n          total_docentes: parsearNumeroMineduc(celdas[23]),\n          administrativos_mujeres: parsearNumeroMineduc(celdas[24]),\n          administrativos_hombres: parsearNumeroMineduc(celdas[25]),\n          total_administrativos: parsearNumeroMineduc(celdas[26])\n        },\n\n        // 🎓 3. Resumen Global de Alumnado\n        estudiantes_resumen: {\n          estudiantes_mujeres: parsearNumeroMineduc(celdas[27]),\n          estudiantes_hombres: parsearNumeroMineduc(celdas[28]),\n          total_estudiantes: parsearNumeroMineduc(celdas[29])\n        },\n\n        // 📊 4. Desglose Matricial por Rangos de Edad y Grados de Básica/Bachillerato\n        estudiantes_detallado: {\n          menores_3_anos: { m: parsearNumeroMineduc(celdas[30]), h: parsearNumeroMineduc(celdas[31]) },\n          grupo_3_anos:   { m: parsearNumeroMineduc(celdas[32]), h: parsearNumeroMineduc(celdas[33]) },\n          grupo_4_anos:   { m: parsearNumeroMineduc(celdas[34]), h: parsearNumeroMineduc(celdas[35]) },\n          basica_1er_ano: { m: parsearNumeroMineduc(celdas[36]), h: parsearNumeroMineduc(celdas[37]) },\n          basica_2do_ano: { m: parsearNumeroMineduc(celdas[36]), h: parsearNumeroMineduc(celdas[39]) },\n          basica_3er_ano: { m: parsearNumeroMineduc(celdas[40]), h: parsearNumeroMineduc(celdas[41]) },\n          basica_4to_ano: { m: parsearNumeroMineduc(celdas[42]), h: parsearNumeroMineduc(celdas[43]) },\n          basica_5to_ano: { m: parsearNumeroMineduc(celdas[44]), h: parsearNumeroMineduc(celdas[45]) },\n          basica_6to_ano: { m: parsearNumeroMineduc(celdas[46]), h: parsearNumeroMineduc(celdas[47]) },\n          basica_7mo_ano: { m: parsearNumeroMineduc(celdas[48]), h: parsearNumeroMineduc(celdas[49]) },\n          basica_8vo_ano: { m: parsearNumeroMineduc(celdas[50]), h: parsearNumeroMineduc(celdas[51]) },\n          basica_9no_ano: { m: parsearNumeroMineduc(celdas[52]), h: parsearNumeroMineduc(celdas[53]) },\n          basica_10mo_ano:{ m: parsearNumeroMineduc(celdas[54]), h: parsearNumeroMineduc(celdas[55]) },\n          bachillerato_1er_ano: { m: parsearNumeroMineduc(celdas[56]), h: parsearNumeroMineduc(celdas[57]) },\n          bachillerato_2do_ano: { m: parsearNumeroMineduc(celdas[58]), h: parsearNumeroMineduc(celdas[59]) },\n          bachillerato_3er_ano: { m: parsearNumeroMineduc(celdas[60]), h: parsearNumeroMineduc(celdas[61]) },\n          alfabetizacion: { m: parsearNumeroMineduc(celdas[62]), h: parsearNumeroMineduc(celdas[63]) },\n          ciclos_intensivos: { m: parsearNumeroMineduc(celdas[64]), h: parsearNumeroMineduc(celdas[65]) }\n        },\n        fuente: \"Ministerio de Educación del Ecuador (MINEDUC)\",\n        ruta_logica: \"MINEDUC/AMIE/REGISTROS_ADMINISTRATIVOS\"\n      })\n    }\n  });\n}\n\nreturn listaFilasProcesadas;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        624
+      ],
+      "id": "a308bc9c-8438-4420-9939-b4b5c2818caf",
+      "name": "Code_Error_Anual"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawItems = $input.all();\nconst listaConsolidada = [];\n\n// Expresión regular para validar que la fila empiece con un año de 4 dígitos\nconst regexAnio = /^\\d{4}/;\n\nfor (const item of rawItems) {\n  const data = item.json;\n  const anioRaw = data.__EMPTY ? data.__EMPTY.toString().trim() : \"\";\n\n  // FILTRO INTELIGENTE: Si no empieza con año, es basura\n  if (!regexAnio.test(anioRaw)) {\n    continue;\n  }\n\n  const pibRealMillones = parseFloat(data.__EMPTY_1);\n  const poblacion = parseFloat(data.__EMPTY_2);\n  const pibPcRealUsd = parseFloat(data.__EMPTY_3);\n  const tasaVariacion = parseFloat(data.__EMPTY_4);\n\n  listaConsolidada.push({\n    json: {\n      INDICADOR: \"PIB_REAL_PER_CAPITA\",\n      FECHA_FISCAL: anioRaw,         // ◄--- NUEVA: El año como clave primaria lógica\n      FECHA_EXTRACCION: new Date(),   // Objeto Date nativo corregido\n      ESTADO: \"COMPLETO\",\n      NECESITA_RESPALDO: 0,           // Tipo número corregido\n      DETALLE_ERROR: \"\",\n      DATOS_JSON: JSON.stringify({\n        fecha_fiscal: anioRaw, \n        pib_real_millones: isNaN(pibRealMillones) ? null : pibRealMillones,\n        poblacion_total: isNaN(poblacion) ? null : poblacion,\n        pib_pc_real_usd: isNaN(pibPcRealUsd) ? null : pibPcRealUsd,\n        tasa_variacion_anual: isNaN(tasaVariacion) ? null : tasaVariacion,\n        fuente: \"Banco Central del Ecuador\",\n        ruta_logica: \"BCE/CUENTAS_NACIONALES/PIB_PC_REAL\"\n      })\n    }\n  });\n}\n\nreturn listaConsolidada;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        912
+      ],
+      "id": "c7650eea-572f-44b8-bfab-918bf43e3505",
+      "name": "Code_Transformar_INEC_Rama_Actividad"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawItems = $input.all();\nconst listaConsolidada = [];\nconst regexAnio = /^\\d{4}/;\n\nfor (const item of rawItems) {\n  const data = item.json;\n  const anioRaw = data.__EMPTY ? data.__EMPTY.toString().trim() : \"\";\n\n  if (!regexAnio.test(anioRaw)) {\n    continue;\n  }\n\n  const pibNominalMillones = parseFloat(data.__EMPTY_1);\n  const poblacion = parseFloat(data.__EMPTY_2);\n  const pibPcNominalUsd = parseFloat(data.__EMPTY_3);\n  const tasaVariacionNominal = parseFloat(data.__EMPTY_4);\n\n  listaConsolidada.push({\n    json: {\n      INDICADOR: \"PIB_NOMINAL_PER_CAPITA\",\n      FECHA_FISCAL: anioRaw,         // ◄--- NUEVA: El año como clave primaria lógica\n      FECHA_EXTRACCION: new Date(),   // Objeto Date nativo corregido\n      ESTADO: \"COMPLETO\",\n      NECESITA_RESPALDO: 0,           // Tipo número corregido\n      DETALLE_ERROR: \"\",\n      DATOS_JSON: JSON.stringify({\n        fecha_fiscal: anioRaw,\n        pib_nominal_millones: isNaN(pibNominalMillones) ? null : pibNominalMillones,\n        poblacion_total: isNaN(poblacion) ? null : poblacion,\n        pib_pc_nominal_usd: isNaN(pibPcNominalUsd) ? null : pibPcNominalUsd,\n        tasa_variacion_anual: isNaN(tasaVariacionNominal) ? null : tasaVariacionNominal,\n        fuente: \"Banco Central del Ecuador\",\n        ruta_logica: \"BCE/CUENTAS_NACIONALES/PIB_PC_NOMINAl\"\n      })\n    }\n  });\n}\n\nreturn listaConsolidada;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        1088
+      ],
+      "id": "f9d805a0-11d2-4430-90b6-e0714f71a6a3",
+      "name": "Code_Transformar_INEC_Grupo_Ocupacion"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawItems = $input.all();\nconst listaConsolidada = [];\n\nfunction parsearNumeroExcel(val) {\n  if (val === undefined || val === null || val === '') return null;\n  if (typeof val === 'number') return val;\n  const limpio = val.toString().replace(/,/g, '').trim();\n  const num = parseFloat(limpio);\n  return isNaN(num) ? null : num;\n}\n\nfor (const item of rawItems) {\n  const data = item.json;\n  \n  const seccionCiiu = data.__EMPTY ? data.__EMPTY.toString().trim() : \"\";\n  const cie = data.__EMPTY_1 ? data.__EMPTY_1.toString().trim() : \"\";\n  const industria = data.__EMPTY_2 ? data.__EMPTY_2.toString().trim() : \"\";\n\n  if (!industria || industria === \"Industria\" || industria.includes(\"Puestos de trabajo\")) {\n    continue;\n  }\n\n  // Generamos un identificador único para la industria que quepa en VARCHAR2(50)\n  const idIndustriaClave = (cie || industria).substring(0, 50);\n\n  if (industria === \"Total Empleo\") {\n    listaConsolidada.push({\n      json: {\n        INDICADOR: \"MEI_TOTAL_EMPLEO_NUR\",\n        FECHA_FISCAL: idIndustriaClave, // ◄--- NUEVA: Evita duplicar esta industria horizontal\n        FECHA_EXTRACCION: new Date(),\n        ESTADO: \"COMPLETO\",\n        NECESITA_RESPALDO: 0,\n        DETALLE_ERROR: \"\",\n        DATOS_JSON: JSON.stringify({\n          seccion_ciiu: seccionCiiu,\n          cie: cie,\n          industria: industria,\n          valores_anuales: {\n            2018: parsearNumeroExcel(data.__EMPTY_3),\n            2019: parsearNumeroExcel(data.__EMPTY_4),\n            2020: parsearNumeroExcel(data.__EMPTY_5),\n            2021: parsearNumeroExcel(data.__EMPTY_6),\n            2022: parsearNumeroExcel(data.__EMPTY_7),\n            2023: parsearNumeroExcel(data.__EMPTY_8),\n            2024: parsearNumeroExcel(data.__EMPTY_9)\n          },\n          fuente: \"Banco Central del Ecuador\",\n          ruta_logica: \"BCE/CUENTAS_NACIONALES/MEI_TOTAL_EMPLEO\"\n        })\n      }\n    });\n    break; \n  }\n\n  listaConsolidada.push({\n    json: {\n      INDICADOR: \"MEI_EMPLEO_SECTORIAL\",\n      FECHA_FISCAL: idIndustriaClave,   // ◄--- NUEVA: Mapeo por sector\n      FECHA_EXTRACCION: new Date(),\n      ESTADO: \"COMPLETO\",\n      NECESITA_RESPALDO: 0,\n      DETALLE_ERROR: \"\",\n      DATOS_JSON: JSON.stringify({\n        seccion_ciiu: seccionCiiu,\n        cie: cie,\n        industria: industria,\n        valores_anuales: {\n          2018: parsearNumeroExcel(data.__EMPTY_3),\n          2019: parsearNumeroExcel(data.__EMPTY_4),\n          2020: parsearNumeroExcel(data.__EMPTY_5),\n          2021: parsearNumeroExcel(data.__EMPTY_6),\n          2022: parsearNumeroExcel(data.__EMPTY_7),\n          2023: parsearNumeroExcel(data.__EMPTY_8),\n          2024: parsearNumeroExcel(data.__EMPTY_9)\n        },\n        fuente: \"Banco Central del Ecuador\",\n        ruta_logica: \"BCE/CUENTAS_NACIONALES/MEI_TOTAL_EMPLEO\"\n      })\n    }\n  });\n}\n\nreturn listaConsolidada;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        1248
+      ],
+      "id": "cb487041-5f4d-4e40-8ded-e9e0d087d564",
+      "name": "Code_Transformar_BCE_PIB_Real"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawItems = $input.all();\nconst listaConsolidada = [];\n\nfunction parsearNumeroExcel(val) {\n  if (val === undefined || val === null || val === '') return null;\n  if (typeof val === 'number') return val;\n  const limpio = val.toString().replace(/,/g, '').trim();\n  const num = parseFloat(limpio);\n  return isNaN(num) ? null : num;\n}\n\nfor (const item of rawItems) {\n  const data = item.json;\n  \n  const ciiu = data.__EMPTY ? data.__EMPTY.toString().trim() : \"\";\n  const cie = data.__EMPTY_1 ? data.__EMPTY_1.toString().trim() : \"\";\n  const industria = data.__EMPTY_2 ? data.__EMPTY_2.toString().trim() : \"\";\n\n  if (!industria || industria === \"Industria\" || industria.includes(\"VALOR AGREGADO\")) {\n    continue;\n  }\n\n  const idVabClave = (cie || industria).substring(0, 50);\n\n  if (industria === \"Valor Agregado Total\") {\n    listaConsolidada.push({\n      json: {\n        INDICADOR: \"MEI_VAB_TOTAL\",\n        FECHA_FISCAL: idVabClave,       // ◄--- NUEVA: Unicidad del gran total\n        FECHA_EXTRACCION: new Date(),\n        ESTADO: \"COMPLETO\",\n        NECESITA_RESPALDO: 0,\n        DETALLE_ERROR: \"\",\n        DATOS_JSON: JSON.stringify({\n          ciiu: ciiu,\n          cie: cie,\n          industria: industria,\n          valores_anuales: {\n            2018: parsearNumeroExcel(data.__EMPTY_3),\n            2019: parsearNumeroExcel(data.__EMPTY_4),\n            2020: parsearNumeroExcel(data.__EMPTY_5),\n            2021: parsearNumeroExcel(data.__EMPTY_6),\n            2022: parsearNumeroExcel(data.__EMPTY_7),\n            2023: parsearNumeroExcel(data.__EMPTY_8),\n            2024: parsearNumeroExcel(data.__EMPTY_9)\n          },\n          fuente: \"Banco Central del Ecuador\",\n          ruta_logica: \"BCE/CUENTAS_NACIONALES/MEI_VAB\"\n        })\n      }\n    });\n    break; \n  }\n\n  listaConsolidada.push({\n    json: {\n      INDICADOR: \"MEI_VAB_SECTORIAL\",\n      FECHA_FISCAL: idVabClave,         // ◄--- NUEVA: Unicidad por sector industrial\n      FECHA_EXTRACCION: new Date(),\n      ESTADO: \"COMPLETO\",\n      NECESITA_RESPALDO: 0,\n      DETALLE_ERROR: \"\",\n      DATOS_JSON: JSON.stringify({\n        ciiu: ciiu,\n        cie: cie,\n        industria: industria,\n        valores_anuales: {\n          2018: parsearNumeroExcel(data.__EMPTY_3),\n          2019: parsearNumeroExcel(data.__EMPTY_4),\n          2020: parsearNumeroExcel(data.__EMPTY_5),\n          2021: parsearNumeroExcel(data.__EMPTY_6),\n          2022: parsearNumeroExcel(data.__EMPTY_7),\n          2023: parsearNumeroExcel(data.__EMPTY_8),\n          2024: parsearNumeroExcel(data.__EMPTY_9)\n        },\n        fuente: \"Banco Central del Ecuador\",\n        ruta_logica: \"BCE/CUENTAS_NACIONALES/MEI_VAB\"\n      })\n    }\n  });\n}\n\nreturn listaConsolidada;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        1488
+      ],
+      "id": "aca6145f-7911-43de-8f83-5d01a9e8489e",
+      "name": "Code_Transformar_BCE_PIB_Per_Capita"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {
+          "sheetName": "VAB"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        352,
+        1584
+      ],
+      "id": "1583967e-7b4b-4972-b801-cbdd5474b761",
+      "name": "Extraer_Excel_BCE_VAB"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {
+          "sheetName": "TOTAL EMPLEO"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        352,
+        1376
+      ],
+      "id": "0cdba9c3-f681-4a86-919f-54bbe6ced6fc",
+      "name": "Extraer_Excel_BCE_Total_Empleo"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {
+          "sheetName": "5.1"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        304,
+        256
+      ],
+      "id": "e9aacfa0-ead8-4fa9-a69b-eecff246fd76",
+      "name": "Extraer_Excel_INEC_Rama_Actividad"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Capturamos el ítem de error que activó el nodo\nconst rawItem = $input.first().json;\nconst hoy = new Date();\n\n// 2. Formateamos una fecha de salvavidas para la FECHA_FISCAL (YYYY-MM-DD)\nconst anio = hoy.getFullYear();\nconst mes = String(hoy.getMonth() + 1).padStart(2, '0');\nconst dia = String(hoy.getDate()).padStart(2, '0');\nconst fechaFallback = `${anio}-${mes}-${dia}`;\n\nlet mensajeError = \"Fallo indeterminado en la conectividad con la fuente anual.\";\nlet urlAfectada = \"\";\n\n// Extraemos el mensaje técnico y la URL del objeto de error de n8n\nif (rawItem.error) {\n  mensajeError = rawItem.error.message || JSON.stringify(rawItem.error);\n  urlAfectada = rawItem.error.context?.url || \"\";\n} else if (rawItem.message) {\n  mensajeError = rawItem.message;\n}\n\n// 3. ALGORITMO DE CLASIFICACIÓN DE FUENTES ANUALES\n// Escaneamos el rastro de texto para identificar cuál de las 4 fuentes falló\nlet indicadorTarget = \"ANUAL_DESCONOCIDO\";\nlet rutaLogicaTarget = \"COYUNTURA/ANUAL/CONTINGENCIA\";\n\nconst rastroTexto = (mensajeError + \" \" + urlAfectada).toLowerCase();\n\nif (rastroTexto.includes(\"bce\") || rastroTexto.includes(\"cuentasnacionales\") || rastroTexto.includes(\"fin.ec\")) {\n  indicadorTarget = \"BCE_CUENTAS_NACIONALES\";\n  rutaLogicaTarget = \"BCE/CUENTAS_NACIONALES/ANUAL\";\n} \nelse if (rastroTexto.includes(\"ranking\") || rastroTexto.includes(\"supercias\") || rastroTexto.includes(\"appscvsmovil\")) {\n  indicadorTarget = \"SUPERCIAS_RANKING\";\n  rutaLogicaTarget = \"SUPERCIAS/RANKING/INGRESOS_VENTAS\";\n} \nelse if (rastroTexto.includes(\"censo\") || rastroTexto.includes(\"censoecuador\") || rastroTexto.includes(\"tabulados\")) {\n  indicadorTarget = \"INEC_CENSO_2022\";\n  rutaLogicaTarget = \"INEC/CENSO_2022/ESTATICA\";\n} \nelse if (rastroTexto.includes(\"educacion.gob.ec\") || rastroTexto.includes(\"amie\") || rastroTexto.includes(\"registrosadministrativos\")) {\n  indicadorTarget = \"MINEDUC_AMIE_COSTA\";\n  rutaLogicaTarget = \"MINEDUC/AMIE/REGISTROS_ADMINISTRATIVOS\";\n}\n\n// 4. RETORNAMOS EL PAYLOAD HOMOLOGADO DE ALERTA PARA EL NODO ORACLE\nreturn [{\n  json: {\n    INDICADOR: indicadorTarget, // Cambia dinámicamente según la fuente caída\n    FECHA_FISCAL: `${fechaFallback}_ERR_ANUAL`, // Evita duplicados en ejecuciones del mismo día\n    FECHA_EXTRACCION: hoy,\n    ESTADO: \"INCOMPLETO\",\n    NECESITA_RESPALDO: 1, // Enciende la bandera de alerta para el equipo de soporte\n    DETALLE_ERROR: `Fallo Crítico Anual [${indicadorTarget}]: ${mensajeError}`.substring(0, 4000),\n    DATOS_JSON: JSON.stringify({\n      error: true,\n      fase: \"INGESTA_HTTP_ANUAL\",\n      mensaje_tecnico: mensajeError,\n      url_origen: urlAfectada,\n      fuente: \"Consolidador de Contingencias Anuales\",\n      ruta_logica: rutaLogicaTarget\n    })\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        800
+      ],
+      "id": "21bae3fa-b5a9-4522-8d8b-2e0396987a97",
+      "name": "Code_Error_Anual1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -752,
+        272
+      ],
+      "id": "7ef0ab81-5480-4e8d-b8ab-7a156cb49d37",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Extraemos el flujo binario descargado de los servidores de la SUPERCIAS\nconst archivoPlanoText = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst lineas = archivoPlanoText.toString('utf-8').split(/\\r?\\n/);\nconst listaFilasProcesadas = [];\n\nif (lineas.length < 2) {\n  throw new Error(\"Control de Contingencia: El archivo CSV de Ranking no contiene registros suficientes.\");\n}\n\n// 2. EXTRACCIÓN DINÁMICA DE CABECERAS\n// Leemos la primera línea para identificar el orden exacto de las 54 columnas\nconst cabeceras = lineas[0].split(',').map(c => c.trim().toLowerCase());\n\n// Función auxiliar para parsear valores de forma segura (números limpios o nulos)\nfunction procesarValorFinanciero(val) {\n  if (val === undefined || val === null) return null;\n  const limpio = val.toString().trim();\n  if (limpio === '' || limpio === '-' || limpio === 'null') return null;\n  \n  const num = Number(limpio);\n  return isNaN(num) ? limpio : num; // Si es numérico lo convierte, sino conserva el texto\n}\n\n// 3. PROCESAMIENTO MATRICIAL DE FILAS FINANCIERAS\nfor (let i = 1; i < lineas.length; i++) {\n  const filaCruda = lineas[i];\n  if (!filaCruda.trim()) continue; // Ignoramos baches o líneas vacías al final\n\n  // Separamos por comas considerando el formato plano estándar del archivo\n  const celdas = filaCruda.split(',');\n\n  // Construimos un objeto dinámico emparejando cada cabecera con su celda correspondiente\n  const registroDinamic = {};\n  cabeceras.forEach((cabecera, indice) => {\n    registroDinamic[cabecera] = procesarValorFinanciero(celdas[indice]);\n  });\n\n  // Aislamos las dimensiones clave de negocio para el control de la base de datos\n  const anioFiscal = registroDinamic[\"anio\"] ? registroDinamic[\"anio\"].toString() : \"\";\n  const expediente = registroDinamic[\"expediente\"] ? registroDinamic[\"expediente\"].toString() : \"\";\n\n  // Escudo de seguridad contra filas inconsistentes\n  if (!anioFiscal || !expediente) continue;\n\n  // GENERACIÓN DE LA LLAVE ÚNICA DE INTEGRIDAD (FECHA_FISCAL)\n  // Evita la colisión de datos en el Upsert de Oracle combinando periodo y código de compañía (Ej: \"2008_1\")\n  const fechaFiscalClave = `${anioFiscal}_${expediente}`.replace(/\\s+/g, '');\n\n  listaConsolidada.push({\n    json: {\n      INDICADOR: \"SUPERCIAS_RANKING\",\n      FECHA_FISCAL: fechaFiscalClave.substring(0, 150),\n      FECHA_EXTRACCION: new Date(),\n      ESTADO: \"COMPLETO\",\n      NECESITA_RESPALDO: 0,\n      DETALLE_ERROR: \"\",\n      DATOS_JSON: JSON.stringify({\n        anio_ejercicio: parseInt(anioFiscal, 10),\n        expediente: parseInt(expediente, 10),\n        posicion_general: registroDinamic[\"posicion_general\"] || null,\n        indicadores_control: {\n          cia_imvalores: registroDinamic[\"cia_imvalores\"],\n          id_estado_financiero: registroDinamic[\"id_estado_financiero\"],\n          cod_segmento: registroDinamic[\"cod_segmento\"],\n          n_empleados: registroDinamic[\"n_empleados\"]\n        },\n        estructura_balance: {\n          activos: registroDinamic[\"activos\"],\n          patrimonio: registroDinamic[\"patrimonio\"],\n          deuda_total: registroDinamic[\"deuda_total\"],\n          deuda_total_c_plazo: registroDinamic[\"deuda_total_c_plazo\"]\n        },\n        cuenta_resultados: {\n          ingresos_ventas: registroDinamic[\"ingresos_ventas\"],\n          ingresos_totales: registroDinamic[\"ingresos_totales\"],\n          costos_ventas_prod: registroDinamic[\"costos_ventas_prod\"],\n          gastos_admin_ventas: registroDinamic[\"gastos_admin_ventas\"],\n          gastos_financieros: registroDinamic[\"gastos_financieros\"],\n          total_gastos: registroDinamic[\"total_gastos\"],\n          utilidad_an_imp: registroDinamic[\"utilidad_an_imp\"],\n          impuesto_renta: registroDinamic[\"impuesto_renta\"],\n          utilidad_ejercicio: registroDinamic[\"utilidad_ejercicio\"],\n          utilidad_neta: registroDinamic[\"utilidad_neta\"]\n        },\n        ratios_financieros: {\n          liquidez: {\n            corriente: registroDinamic[\"liquidez_corriente\"],\n            prueba_acida: registroDinamic[\"prueba_acida\"]\n          },\n          solvencia_apalancamiento: {\n            end_activo: registroDinamic[\"end_activo\"],\n            end_patrimonial: registroDinamic[\"end_patrimonial\"],\n            end_activo_fijo: registroDinamic[\"end_activo_fijo\"],\n            end_corto_plazo: registroDinamic[\"end_corto_plazo\"],\n            end_largo_plazo: registroDinamic[\"end_largo_plazo\"],\n            apalancamiento: registroDinamic[\"apalancamiento\"],\n            apalancamiento_financiero: registroDinamic[\"apalancamiento_financiero\"]\n          },\n          rentabilidad: {\n            roe: registroDinamic[\"roe\"],\n            roa: registroDinamic[\"roa\"],\n            margen_bruto: registroDigamico[\"margen_bruto\"],\n            margen_operacional: registroDinamic[\"margen_operacional\"]\n          }\n        },\n        clasificacion_industrial: {\n          ciiu_n1: registroDinamic[\"ciiu_n1\"] || \"\",\n          ciiu_n6: registroDinamic[\"ciiu_n6\"] || \"\"\n        },\n        fuente: \"Superintendencia de Compañías, Valores y Seguros del Ecuador\",\n        ruta_logica: \"SUPERCIAS/RANKING/INGRESOS_VENTAS\"\n      })\n    }\n  });\n}\n\nreturn listaConsolidada;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        64
+      ],
+      "id": "d0be652f-2071-456a-bd58-b9c9a72072b8",
+      "name": "Code_Transformar_Supercias_Ranking"
+    },
+    {
+      "parameters": {
+        "chatId": "1874984363",
+        "text": "={{ $json.mensaje }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1584,
+        768
+      ],
+      "id": "1cbad3d0-20f5-480a-87e8-66d3c90da76f",
+      "name": "Send a text message",
+      "webhookId": "7b349fd5-7bae-4185-bc24-f38a46ddea46",
+      "credentials": {
+        "telegramApi": {
+          "id": "mtMNFUdy3uQ7XiIX",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const fecha = new Date().toLocaleString('es-EC', {\n  timeZone: 'America/Guayaquil'\n});\n\nconst mensaje = `📊 REPORTE DE EJECUCIÓN RPA\n\n✅ Estado: COMPLETADO\n\n📌 Workflow: RPA_Macroentorno_Anual\n📂 Fuente procesada: MINEDUC AMIE Costa\n\n🗄️ Base de datos: Oracle Cloud\n📋 Tabla: TAB_CONSOLIDADO_MACRO\n🔁 Operación: Carga por bloques\n\n📅 Fecha de ejecución: ${fecha}\n\n🟢 Resultado: Los datos fueron registrados correctamente en Oracle.`;\n\nreturn [\n  {\n    json: {\n      chat_id: \"1874984363\",\n      mensaje\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        768
+      ],
+      "id": "289efeea-e9ec-4b5c-93cf-6acb4271edaa",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Extraer PIB pc real": {
+      "main": [
+        [
+          {
+            "node": "Code_Transformar_INEC_Rama_Actividad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer PIB pc nominal": {
+      "main": [
+        [
+          {
+            "node": "Code_Transformar_INEC_Grupo_Ocupacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Grupo de ocupación por provincia": {
+      "main": [
+        [
+          {
+            "node": "Code_Transformar_BCE_VAB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_obtener_archivo_actual": {
+      "main": [
+        [
+          {
+            "node": "HTTP obtener_csv",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP obtener_csv": {
+      "main": [
+        [
+          {
+            "node": "Code_Error_Anual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BCE Matriz Empleo e Ingresos": {
+      "main": [
+        [
+          {
+            "node": "Extraer_Excel_BCE_Total_Empleo",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extraer_Excel_BCE_VAB",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code_Error_Anual1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BCE PIB real, PIB per cápita": {
+      "main": [
+        [
+          {
+            "node": "Extraer PIB pc real",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extraer PIB pc nominal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code_Error_Anual1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MINEDUC registro instituciones": {
+      "main": [
+        [
+          {
+            "node": "Code_obtener_archivo_actual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code_Error_Anual1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule_Anual": {
+      "main": [
+        [
+          {
+            "node": "BCE PIB real, PIB per cápita",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "BCE Matriz Empleo e Ingresos",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP_MINEDUC_AMIE_Pagina",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "MINEDUC registro instituciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP_Supercias_Ranking": {
+      "main": [
+        [
+          {
+            "node": "Code_Transformar_Supercias_Ranking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code_Error_Anual1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP_MINEDUC_AMIE_Pagina": {
+      "main": [
+        [
+          {
+            "node": "Extraer_Excel_INEC_Rama_Actividad",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract Grupo de ocupación por provincia",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code_Error_Anual1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_Transformar_BCE_Total_Empleo": {
+      "main": [
+        [
+          {
+            "node": "Oracle_Upsert_Anual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_Transformar_BCE_VAB": {
+      "main": [
+        [
+          {
+            "node": "Oracle_Upsert_Anual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_Error_Anual": {
+      "main": [
+        [
+          {
+            "node": "Oracle_Upsert_Anual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_Transformar_INEC_Rama_Actividad": {
+      "main": [
+        [
+          {
+            "node": "Oracle_Upsert_Anual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_Transformar_INEC_Grupo_Ocupacion": {
+      "main": [
+        [
+          {
+            "node": "Oracle_Upsert_Anual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_Transformar_BCE_PIB_Real": {
+      "main": [
+        [
+          {
+            "node": "Oracle_Upsert_Anual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_Transformar_BCE_PIB_Per_Capita": {
+      "main": [
+        [
+          {
+            "node": "Oracle_Upsert_Anual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer_Excel_BCE_VAB": {
+      "main": [
+        [
+          {
+            "node": "Code_Transformar_BCE_PIB_Per_Capita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer_Excel_BCE_Total_Empleo": {
+      "main": [
+        [
+          {
+            "node": "Code_Transformar_BCE_PIB_Real",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer_Excel_INEC_Rama_Actividad": {
+      "main": [
+        [
+          {
+            "node": "Code_Transformar_BCE_Total_Empleo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_Error_Anual1": {
+      "main": [
+        [
+          {
+            "node": "Oracle_Upsert_Anual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP_Supercias_Ranking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_Transformar_Supercias_Ranking": {
+      "main": [
+        [
+          {
+            "node": "Oracle_Upsert_Anual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Oracle_Upsert_Anual": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "647dca18-b8ef-4d17-b762-1dc51db33bf8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9502df90a509d5d7bcf0cdd2883b48360a38a2e461d07b2891dc8aa9f9758f07"
+  },
+  "nodeGroups": [],
+  "id": "WwYL5ptMTtSZ8HY2",
+  "tags": []
+}

@@ -1,0 +1,434 @@
+{
+  "name": "Reto_F_ Diario BCE",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -560,
+        432
+      ],
+      "id": "59cbe612-2040-408a-978a-a8b46938c314",
+      "name": "Schedule_Diario"
+    },
+    {
+      "parameters": {
+        "url": "https://contenido.bce.fin.ec/documentos/informacioneconomica/indicadores/general/datos_diarios.json",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -192,
+        160
+      ],
+      "id": "b23bfc13-ed66-40e2-92eb-f7b057bc8304",
+      "name": "HTTP_BCE_WTI",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawItems = $input.all();\nlet errorIngesta = null;\nlet registrosRaw = [];\n\n// =========================================================================\n// FASE 1: CAPTURA SEGURA Y TRATAMIENTO DE ERRORES HTTP\n// =========================================================================\ntry {\n  // Evaluamos si el nodo HTTP Request anterior reportó un fallo controlado\n  if (rawItems[0] && rawItems[0].json && rawItems[0].json.error) {\n    errorIngesta = rawItems[0].json.error.message || \"Fallo en el servicio de indicadores generales del BCE.\";\n  } else {\n    registrosRaw = rawItems[0]?.json?.view_ind_generales || [];\n  }\n} catch (e) {\n  errorIngesta = e.message || \"Error al procesar la estructura de datos del BCE.\";\n}\n\n// =========================================================================\n// CONTINGENCIA A: EL SERVIDOR DEL BCE NO RESPONDIÓ (FALLO DE RED)\n// =========================================================================\nif (errorIngesta) {\n  const hoy = new Date();\n  const fechaFallback = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;\n  \n  return [{\n    json: {\n      INDICADOR: \"PRECIO_PETROLEO_WTI\",\n      FECHA_FISCAL: `${fechaFallback}_ERR_BCE`, // Llave controlada anti-sobreescritura\n      FECHA_EXTRACCION: hoy,\n      ESTADO: \"INCOMPLETO\",\n      NECESITA_RESPALDO: 1, // Enciende la alerta de auditoría\n      DETALLE_ERROR: `Fallo Crítico Ingesta: ${errorIngesta}`.substring(0, 4000),\n      DATOS_JSON: JSON.stringify({ error: true, fase: \"HTTP_GET\", detalle: errorIngesta })\n    }\n  }];\n}\n\n// FASE 2: FILTRADO INTELIGENTE (Inmunidad contra Mojibake)\nconst datosPetroleo = registrosRaw.filter(item => \n  item[\"CÃ³digo Variable DinÃ¡mica\"] === \"val_ind_0001\" || \n  item[\"Código Variable Dinámica\"] === \"val_ind_0001\"\n);\n\n// =========================================================================\n// CONTINGENCIA B: EL ARCHIVO LLEGÓ PERO NO CONTIENE EL INDICADOR WTI\n// =========================================================================\nif (datosPetroleo.length === 0) {\n  const hoy = new Date();\n  const fechaFallback = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;\n  \n  return [{\n    json: {\n      INDICADOR: \"PRECIO_PETROLEO_WTI\",\n      FECHA_FISCAL: `${fechaFallback}_VACIO`,\n      FECHA_EXTRACCION: hoy,\n      ESTADO: \"INCOMPLETO\",\n      NECESITA_RESPALDO: 1,\n      DETALLE_ERROR: \"Error de verificación: No se encontraron registros válidos para el código val_ind_0001.\",\n      DATOS_JSON: JSON.stringify({ fuente: \"Banco Central del Ecuador\", estatus: \"Estructura incompleta sin indicador WTI\" })\n    }\n  }];\n}\n\n// =========================================================================\n// FASE 3: MAPEO TRANSACCIONAL IDEMPOTENTE (CASO DE ÉXITO)\n// =========================================================================\nreturn datosPetroleo.map(item => {\n  const valorNumerico = parseFloat(item.Valor);\n  const esValido = !isNaN(valorNumerico);\n\n  return {\n    json: {\n      INDICADOR: \"PRECIO_PETROLEO_WTI\",\n      FECHA_FISCAL: item.Fecha ? item.Fecha.toString().trim() : \"SIN_FECHA\",\n      FECHA_EXTRACCION: new Date(),\n      ESTADO: esValido ? \"COMPLETO\" : \"INCOMPLETO\",\n      NECESITA_RESPALDO: esValido ? 0 : 1,\n      DETALLE_ERROR: esValido ? \"\" : \"Valor histórico con formato no numérico.\",\n      DATOS_JSON: JSON.stringify({\n        fecha_fiscal: item.Fecha,\n        valor: esValido ? valorNumerico : null,\n        indicador_limpio: \"Precio Petróleo (WTI)\",\n        medida: \"USD por barril\",\n        fuente: \"Banco Central del Ecuador\",\n        ruta_logica: \"BCE/SECTOR_EXTERNO/PETROLEO_WTI\"\n      })\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        -16
+      ],
+      "id": "9600b386-adb4-4d8e-a567-baa6e64562e8",
+      "name": "Code_Transformar_BCE_WTI"
+    },
+    {
+      "parameters": {
+        "url": "https://contenido.bce.fin.ec/documentos/informacioneconomica/indicadores/general/datos_formulario.json",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -192,
+        432
+      ],
+      "id": "8b214b64-bef8-4a13-9735-e26c734b0348",
+      "name": "HTTP_BCE_RiesgoPais",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawItems = $input.all();\nlet errorIngesta = null;\nlet registrosRaw = [];\n\n// =========================================================================\n// FASE 1: CAPTURA SEGURA Y TRATAMIENTO DE ERRORES HTTP\n// =========================================================================\ntry {\n  // Evaluamos si el nodo HTTP Request anterior reportó un fallo controlado\n  if (rawItems[0] && rawItems[0].json && rawItems[0].json.error) {\n    errorIngesta = rawItems[0].json.error.message || \"Fallo en el servicio de formularios del BCE.\";\n  } else {\n    registrosRaw = rawItems[0]?.json?.view_ind_formulario || [];\n  }\n} catch (e) {\n  errorIngesta = e.message || \"Error al procesar la estructura de formularios del BCE.\";\n}\n\n// =========================================================================\n// CONTINGENCIA A: EL SERVIDOR DEL BCE NO RESPONDIÓ (FALLO DE RED)\n// =========================================================================\nif (errorIngesta) {\n  const hoy = new Date();\n  const fechaFallback = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;\n  \n  return [{\n    json: {\n      INDICADOR: \"RIESGO_PAIS\",\n      FECHA_FISCAL: `${fechaFallback}_ERR_BCE`, \n      FECHA_EXTRACCION: hoy,\n      ESTADO: \"INCOMPLETO\",\n      NECESITA_RESPALDO: 1, // Enciende la alerta de auditoría\n      DETALLE_ERROR: `Fallo Crítico Ingesta: ${errorIngesta}`.substring(0, 4000),\n      DATOS_JSON: JSON.stringify({ error: true, fase: \"HTTP_GET\", detalle: errorIngesta })\n    }\n  }];\n}\n\n// FASE 2: FILTRADO INMUTABLE (Riesgo País \"val_ind_0003\")\nconst datosRiesgo = registrosRaw.filter(item => \n  item[\"CÃ³digo Variable DinÃ¡mica\"] === \"val_ind_0003\" || \n  item[\"Código Variable Dinámica\"] === \"val_ind_0003\"\n);\n\n// =========================================================================\n// CONTINGENCIA B: EL ARCHIVO LLEGÓ PERO NO CONTIENE EL RIESGO PAÍS\n// =========================================================================\nif (datosRiesgo.length === 0) {\n  const hoy = new Date();\n  const fechaFallback = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;\n  \n  return [{\n    json: {\n      INDICADOR: \"RIESGO_PAIS\",\n      FECHA_FISCAL: `${fechaFallback}_VACIO`,\n      FECHA_EXTRACCION: hoy,\n      ESTADO: \"INCOMPLETO\",\n      NECESITA_RESPALDO: 1,\n      DETALLE_ERROR: \"Error de verificación: No se encontraron registros válidos para el código val_ind_0003.\",\n      DATOS_JSON: JSON.stringify({ fuente: \"Banco Central del Ecuador\", estatus: \"Estructura incompleta sin indicador Riesgo País\" })\n    }\n  }];\n}\n\n// =========================================================================\n// FASE 3: MAPEO TRANSACCIONAL IDEMPOTENTE (CASO DE ÉXITO)\n// =========================================================================\nreturn datosRiesgo.map(item => {\n  const valorRaw = item.Valor ? item.Valor.toString().trim().replace(',', '.') : \"\";\n  const valorNumerico = parseFloat(valorRaw);\n  const esValido = !isNaN(valorNumerico);\n\n  return {\n    json: {\n      INDICADOR: \"RIESGO_PAIS\",\n      FECHA_FISCAL: item.Fecha ? item.Fecha.toString().trim() : \"SIN_FECHA\",\n      FECHA_EXTRACCION: new Date(),\n      ESTADO: esValido ? \"COMPLETO\" : \"INCOMPLETO\",\n      NECESITA_RESPALDO: esValido ? 0 : 1,\n      DETALLE_ERROR: esValido ? \"\" : \"Valor histórico de Riesgo País con formato no numérico.\",\n      DATOS_JSON: JSON.stringify({\n        fecha_fiscal: item.Fecha,\n        valor: esValido ? valorNumerico : null,\n        indicador_limpio: \"Riesgo País\",\n        medida: \"Puntos Básicos\",\n        fuente: \"Banco Central del Ecuador\",\n        ruta_logica: \"BCE/PUBLICACIONES_GENERALES/RIESGO_PAIS\"\n      })\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        128,
+        560
+      ],
+      "id": "57bad2ea-619f-413e-bd50-6c90434e32bc",
+      "name": "Code_Transformar_BCE_RiesgoPais"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "value": "ADMIN",
+          "mode": "list",
+          "cachedResultName": "ADMIN"
+        },
+        "table": {
+          "__rl": true,
+          "value": "TAB_CONSOLIDADO_MACRO",
+          "mode": "list",
+          "cachedResultName": "TAB_CONSOLIDADO_MACRO"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {
+            "NECESITA_RESPALDO": 0,
+            "ID": 0
+          },
+          "matchingColumns": [
+            "FECHA_FISCAL",
+            "INDICADOR"
+          ],
+          "schema": [
+            {
+              "id": "DATOS_JSON",
+              "displayName": "DATOS_JSON",
+              "required": false,
+              "display": true,
+              "type": "object",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "DETALLE_ERROR",
+              "displayName": "DETALLE_ERROR",
+              "required": false,
+              "display": true,
+              "type": "string",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ESTADO",
+              "displayName": "ESTADO",
+              "required": true,
+              "display": true,
+              "type": "string",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "FECHA_EXTRACCION",
+              "displayName": "FECHA_EXTRACCION",
+              "required": true,
+              "display": true,
+              "type": "dateTime",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "FECHA_FISCAL",
+              "displayName": "FECHA_FISCAL",
+              "required": false,
+              "display": true,
+              "type": "string",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "display": true,
+              "type": "number",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "INDICADOR",
+              "displayName": "INDICADOR",
+              "required": true,
+              "display": true,
+              "type": "string",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "NECESITA_RESPALDO",
+              "displayName": "NECESITA_RESPALDO",
+              "required": true,
+              "display": true,
+              "type": "number",
+              "defaultMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.oracleDatabase",
+      "typeVersion": 1,
+      "position": [
+        512,
+        240
+      ],
+      "id": "e3dc7078-09d1-4b14-aa82-e0c7cb38bc18",
+      "name": "Oracle_Upsert_Diario",
+      "credentials": {
+        "oracleDBApi": {
+          "id": "uxs4uqou4yJeqdVn",
+          "name": "Oracle Database Credentials account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -544,
+        208
+      ],
+      "id": "fb476065-28ca-4d21-bdec-7da75bf28fd5",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');\nconst nombreArchivo = `bce_wti_${fecha}.json`;\nconst rutaArchivo = `/home/node/datos_macroentorno/bce/sector_externo/${nombreArchivo}`;\n\nconst contenido = JSON.stringify($input.all().map(item => item.json), null, 2);\n\nreturn [\n  {\n    json: {\n      nombre_archivo: nombreArchivo,\n      ruta_archivo: rutaArchivo\n    },\n    binary: {\n      data: {\n        data: Buffer.from(contenido, 'utf8').toString('base64'),\n        mimeType: 'application/json',\n        fileName: nombreArchivo\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        160
+      ],
+      "id": "618fa987-c61c-45c1-ad86-c740d9ac6334",
+      "name": "Preparar_JSON_BCE_WTI"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');\nconst nombreArchivo = `bce_riesgo_pais_${fecha}.json`;\nconst rutaArchivo = `/home/node/datos_macroentorno/bce/publicaciones/${nombreArchivo}`;\n\nconst contenido = JSON.stringify($input.all().map(item => item.json), null, 2);\n\nreturn [\n  {\n    json: {\n      nombre_archivo: nombreArchivo,\n      ruta_archivo: rutaArchivo\n    },\n    binary: {\n      data: {\n        data: Buffer.from(contenido, 'utf8').toString('base64'),\n        mimeType: 'application/json',\n        fileName: nombreArchivo\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        336
+      ],
+      "id": "953da83f-9e70-46a1-b9fd-9d1b69093784",
+      "name": "Preparar_JSON_BCE_RiesgoPais"
+    },
+    {
+      "parameters": {
+        "chatId": "1874984363",
+        "text": "={{ $json.mensaje }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        928,
+        240
+      ],
+      "id": "1b8d4557-938d-40d0-a0a0-e13dd4c5ef1f",
+      "name": "Send a text message",
+      "webhookId": "7b349fd5-7bae-4185-bc24-f38a46ddea46",
+      "credentials": {
+        "telegramApi": {
+          "id": "mtMNFUdy3uQ7XiIX",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const fecha = new Date().toLocaleString('es-EC', {\n  timeZone: 'America/Guayaquil'\n});\n\nconst mensaje = `📊 REPORTE DE EJECUCIÓN RPA\n\n✅ Estado: COMPLETADO\n\n📌 Workflow: RPA_Macroentorno_Anual\n📂 Fuente procesada: MINEDUC AMIE Costa\n\n🗄️ Base de datos: Oracle Cloud\n📋 Tabla: TAB_CONSOLIDADO_MACRO\n🔁 Operación: Carga por bloques\n\n📅 Fecha de ejecución: ${fecha}\n\n🟢 Resultado: Los datos fueron registrados correctamente en Oracle.`;\n\nreturn [\n  {\n    json: {\n      chat_id: \"1874984363\",\n      mensaje\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        240
+      ],
+      "id": "7ea64a17-f2f1-4963-a188-b9122c8cdaf5",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule_Diario": {
+      "main": [
+        [
+          {
+            "node": "HTTP_BCE_WTI",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP_BCE_RiesgoPais",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP_BCE_WTI": {
+      "main": [
+        [
+          {
+            "node": "Code_Transformar_BCE_WTI",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Preparar_JSON_BCE_WTI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code_Transformar_BCE_WTI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_Transformar_BCE_WTI": {
+      "main": [
+        [
+          {
+            "node": "Oracle_Upsert_Diario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP_BCE_RiesgoPais": {
+      "main": [
+        [
+          {
+            "node": "Code_Transformar_BCE_RiesgoPais",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Preparar_JSON_BCE_RiesgoPais",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code_Transformar_BCE_RiesgoPais",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_Transformar_BCE_RiesgoPais": {
+      "main": [
+        [
+          {
+            "node": "Oracle_Upsert_Diario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP_BCE_WTI",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP_BCE_RiesgoPais",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar_JSON_BCE_WTI": {
+      "main": [
+        []
+      ]
+    },
+    "Preparar_JSON_BCE_RiesgoPais": {
+      "main": [
+        []
+      ]
+    },
+    "Oracle_Upsert_Diario": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f14b93c1-0d46-407c-b5b6-dd05481c1aab",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9502df90a509d5d7bcf0cdd2883b48360a38a2e461d07b2891dc8aa9f9758f07"
+  },
+  "nodeGroups": [],
+  "id": "j3uRH7zM0ZQvHKaC",
+  "tags": []
+}
